@@ -7,30 +7,20 @@ const EDITOR_STYLE = `
     flex-direction: column;
     gap: 16px;
   }
-  .field {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  label {
-    font-weight: 500;
-  }
-  textarea {
-    width: 100%;
-    box-sizing: border-box;
-    padding: 8px;
-    border-radius: 4px;
-    border: 1px solid var(--divider-color, #ccc);
-    background: var(--card-background-color, #fff);
-    color: var(--primary-text-color, #000);
-    font-family: monospace;
-    font-size: 13px;
-  }
-  .hint {
-    font-size: 12px;
-    opacity: 0.7;
-  }
 `;
+
+const LABELS = {
+  entity: 'Entity',
+  name: 'Name',
+  icon: 'Icon',
+  color: 'Color',
+  show_name: 'Show name',
+  show_state: 'Show state',
+  dropdown_on: 'Open dropdown on',
+  tap_action: 'Tap action',
+  hold_action: 'Hold action',
+  double_tap_action: 'Double tap action',
+};
 
 class DropdownBadgeEditor extends HTMLElement {
   constructor() {
@@ -38,6 +28,7 @@ class DropdownBadgeEditor extends HTMLElement {
     this._config = {};
     this._hass = undefined;
     this._lovelace = undefined;
+    this._form = undefined;
     this.attachShadow({ mode: 'open' });
     this.shadowRoot.innerHTML = `<style>${EDITOR_STYLE}</style><div class="editor"></div>`;
   }
@@ -79,73 +70,53 @@ class DropdownBadgeEditor extends HTMLElement {
     this._dispatchChange(config);
   }
 
-  _optionsChanged(ev) {
-    try {
-      const options = ev.target.value ? JSON.parse(ev.target.value) : undefined;
-      this._dispatchChange({ ...this._config, options });
-      ev.target.style.borderColor = '';
-    } catch {
-      ev.target.style.borderColor = 'var(--error-color, red)';
-    }
+  _computeSchema() {
+    return [
+      { name: 'entity', required: true, selector: { entity: { domain: ['select', 'input_select'] } } },
+      { name: 'name', selector: { text: {} } },
+      { name: 'icon', selector: { icon: {} } },
+      { name: 'color', selector: { ui_color: {} } },
+      { name: 'show_name', selector: { boolean: {} } },
+      { name: 'show_state', selector: { boolean: {} } },
+      {
+        name: 'dropdown_on',
+        selector: {
+          select: {
+            mode: 'list',
+            options: [
+              { label: 'Tap', value: 'tap' },
+              { label: 'Hold', value: 'hold' },
+              { label: 'Double tap', value: 'double_tap' },
+            ],
+          },
+        },
+      },
+      { name: 'tap_action', selector: { ui_action: {} } },
+      { name: 'hold_action', selector: { ui_action: {} } },
+      { name: 'double_tap_action', selector: { ui_action: {} } },
+    ];
   }
 
-  _actionChanged(ev) {
-    try {
-      const action = ev.target.value ? JSON.parse(ev.target.value) : undefined;
-      this._dispatchChange({ ...this._config, action });
-      ev.target.style.borderColor = '';
-    } catch {
-      ev.target.style.borderColor = 'var(--error-color, red)';
-    }
+  _ensureEditor() {
+    if (this._form) return;
+
+    const editor = this.shadowRoot.querySelector('.editor');
+
+    const form = document.createElement('ha-form');
+    this._form = form;
+    form.hass = this._hass;
+    form.data = this._config;
+    form.schema = this._computeSchema();
+    form.computeLabel = (schemaItem) => LABELS[schemaItem.name] || schemaItem.name;
+    form.addEventListener('value-changed', this._valueChanged.bind(this));
+    editor.appendChild(form);
   }
 
   _render() {
-    const editor = this.shadowRoot.querySelector('.editor');
-    editor.innerHTML = '';
+    this._ensureEditor();
 
-    const form = document.createElement('ha-form');
-    form.hass = this._hass;
-    form.data = this._config;
-    form.schema = [
-      { name: 'entity', required: true, selector: { entity: {} } },
-      { name: 'name', selector: { text: {} } },
-      { name: 'icon', selector: { icon: {} } },
-      { name: 'color', selector: { text: {} } },
-      { name: 'show_name', selector: { boolean: {} } },
-      { name: 'show_state', selector: { boolean: {} } },
-    ];
-    form.computeLabel = (schemaItem) =>
-      schemaItem.name.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
-    form.addEventListener('value-changed', this._valueChanged.bind(this));
-    editor.appendChild(form);
-
-    const optionsField = document.createElement('div');
-    optionsField.className = 'field';
-    optionsField.innerHTML = `
-      <label>Static options (JSON)</label>
-      <textarea rows="4" placeholder='[{"label":"On","value":"on","icon":"mdi:lightbulb"}]'></textarea>
-      <span class="hint">Used when the entity has no options attribute.</span>
-    `;
-    const optionsTextarea = optionsField.querySelector('textarea');
-    optionsTextarea.value = this._config.options
-      ? JSON.stringify(this._config.options, null, 2)
-      : '';
-    optionsTextarea.addEventListener('change', this._optionsChanged.bind(this));
-    editor.appendChild(optionsField);
-
-    const actionField = document.createElement('div');
-    actionField.className = 'field';
-    actionField.innerHTML = `
-      <label>Custom action (JSON)</label>
-      <textarea rows="4" placeholder='{"service":"light.turn_on","data":{"brightness":"{{value}}"}}'></textarea>
-      <span class="hint">Use {{value}} as placeholder for the selected option.</span>
-    `;
-    const actionTextarea = actionField.querySelector('textarea');
-    actionTextarea.value = this._config.action
-      ? JSON.stringify(this._config.action, null, 2)
-      : '';
-    actionTextarea.addEventListener('change', this._actionChanged.bind(this));
-    editor.appendChild(actionField);
+    this._form.hass = this._hass;
+    this._form.data = this._config;
   }
 }
 
