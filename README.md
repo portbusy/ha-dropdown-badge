@@ -1,8 +1,20 @@
+![Dropdown Badge logo](assets/logo.svg)
+
 # Dropdown Badge
 
 A native Home Assistant custom badge that shows the state of a `select` or `input_select` entity and opens a dropdown menu when tapped.
 
+> **Note:** `home-assistant/brands` icons are only required for integrations. HACS Dashboard plugins (like this one) do **not** need brand assets.
+
 ![HACS Badge](https://img.shields.io/badge/HACS-Dashboard-orange.svg)
+
+## Preview
+
+| Light | Dark |
+| --- | --- |
+| ![Light theme](docs/preview-light.png) | ![Dark theme](docs/preview-dark.png) |
+
+Screenshots are rendered from the built bundle with Home Assistant theme variables set by hand.
 
 ## Features
 
@@ -14,7 +26,7 @@ A native Home Assistant custom badge that shows the state of a `select` or `inpu
 - Standard Home Assistant interactions: `tap_action`, `hold_action`, `double_tap_action`.
 - Choose which interaction opens the dropdown menu (`tap`, `hold`, `double_tap`).
 - Visual editor included (`ha-form` based).
-- Appears in the **Per entità** badge suggestions for `select` and `input_select` entities.
+- Appears in the **By entity** badge suggestions for `select` and `input_select` entities.
 
 ## Installation
 

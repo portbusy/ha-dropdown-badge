@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 256" width="820" height="256" role="img" aria-label="Dropdown Badge logo">
+  <g transform="translate(20, 20) scale(0.85)">
+    <rect x="44" y="44" width="168" height="168" rx="28" fill="none" stroke="#03a9f4" stroke-width="16"/>
+    <path d="M84 102 l44 44 44-44" fill="none" stroke="#03a9f4" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <text x="240" y="172" font-family="Arial, Helvetica, sans-serif" font-size="112" font-weight="bold" fill="#03a9f4">Dropdown Badge</text>
+</svg>
