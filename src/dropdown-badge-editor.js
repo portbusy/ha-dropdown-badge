@@ -32,12 +32,21 @@ const EDITOR_STYLE = `
   }
 `;
 
+function stableJsonStringify(value) {
+  if (value === undefined || value === null) return '';
+  return JSON.stringify(value, null, 2);
+}
+
 class DropdownBadgeEditor extends HTMLElement {
   constructor() {
     super();
     this._config = {};
     this._hass = undefined;
     this._lovelace = undefined;
+    this._form = undefined;
+    this._optionsTextarea = undefined;
+    this._actionTextarea = undefined;
+    this._schemaAllowAny = undefined;
     this.attachShadow({ mode: 'open' });
     this.shadowRoot.innerHTML = `<style>${EDITOR_STYLE}</style><div class="editor"></div>`;
   }
@@ -99,23 +108,40 @@ class DropdownBadgeEditor extends HTMLElement {
     }
   }
 
-  _render() {
-    const editor = this.shadowRoot.querySelector('.editor');
-    editor.innerHTML = '';
-
-    const form = document.createElement('ha-form');
-    form.hass = this._hass;
-    form.data = this._config;
-    form.schema = [
-      { name: 'entity', required: true, selector: { entity: {} } },
+  _computeSchema(allowAnyEntity) {
+    const entitySelector = allowAnyEntity
+      ? { entity: {} }
+      : { entity: { domain: ['select', 'input_select'] } };
+    return [
+      { name: 'allow_any_entity', selector: { boolean: {} } },
+      { name: 'entity', required: true, selector: entitySelector },
       { name: 'name', selector: { text: {} } },
       { name: 'icon', selector: { icon: {} } },
       { name: 'color', selector: { text: {} } },
       { name: 'show_name', selector: { boolean: {} } },
       { name: 'show_state', selector: { boolean: {} } },
     ];
-    form.computeLabel = (schemaItem) =>
-      schemaItem.name.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
+  }
+
+  _ensureEditor() {
+    if (this._form) return;
+
+    const editor = this.shadowRoot.querySelector('.editor');
+
+    const form = document.createElement('ha-form');
+    this._form = form;
+    form.hass = this._hass;
+    form.data = this._config;
+    this._schemaAllowAny = Boolean(this._config.allow_any_entity);
+    form.schema = this._computeSchema(this._schemaAllowAny);
+    form.computeLabel = (schemaItem) => {
+      if (schemaItem.name === 'allow_any_entity') {
+        return 'Allow any entity (static options)';
+      }
+      return schemaItem.name
+        .replace(/_/g, ' ')
+        .replace(/^\w/, (c) => c.toUpperCase());
+    };
     form.addEventListener('value-changed', this._valueChanged.bind(this));
     editor.appendChild(form);
 
@@ -126,11 +152,9 @@ class DropdownBadgeEditor extends HTMLElement {
       <textarea rows="4" placeholder='[{"label":"On","value":"on","icon":"mdi:lightbulb"}]'></textarea>
       <span class="hint">Used when the entity has no options attribute.</span>
     `;
-    const optionsTextarea = optionsField.querySelector('textarea');
-    optionsTextarea.value = this._config.options
-      ? JSON.stringify(this._config.options, null, 2)
-      : '';
-    optionsTextarea.addEventListener('change', this._optionsChanged.bind(this));
+    this._optionsTextarea = optionsField.querySelector('textarea');
+    this._optionsTextarea.value = stableJsonStringify(this._config.options);
+    this._optionsTextarea.addEventListener('change', this._optionsChanged.bind(this));
     editor.appendChild(optionsField);
 
     const actionField = document.createElement('div');
@@ -140,12 +164,35 @@ class DropdownBadgeEditor extends HTMLElement {
       <textarea rows="4" placeholder='{"service":"light.turn_on","data":{"brightness":"{{value}}"}}'></textarea>
       <span class="hint">Use {{value}} as placeholder for the selected option.</span>
     `;
-    const actionTextarea = actionField.querySelector('textarea');
-    actionTextarea.value = this._config.action
-      ? JSON.stringify(this._config.action, null, 2)
-      : '';
-    actionTextarea.addEventListener('change', this._actionChanged.bind(this));
+    this._actionTextarea = actionField.querySelector('textarea');
+    this._actionTextarea.value = stableJsonStringify(this._config.action);
+    this._actionTextarea.addEventListener('change', this._actionChanged.bind(this));
     editor.appendChild(actionField);
+  }
+
+  _updateTextarea(textarea, value) {
+    if (!textarea) return;
+    if (document.activeElement === textarea) return;
+    const next = stableJsonStringify(value);
+    if (textarea.value === next) return;
+    textarea.value = next;
+    textarea.style.borderColor = '';
+  }
+
+  _render() {
+    this._ensureEditor();
+
+    this._form.hass = this._hass;
+    this._form.data = this._config;
+
+    const allowAny = Boolean(this._config.allow_any_entity);
+    if (allowAny !== this._schemaAllowAny) {
+      this._schemaAllowAny = allowAny;
+      this._form.schema = this._computeSchema(allowAny);
+    }
+
+    this._updateTextarea(this._optionsTextarea, this._config.options);
+    this._updateTextarea(this._actionTextarea, this._config.action);
   }
 }
 

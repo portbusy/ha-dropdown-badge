@@ -62,6 +62,7 @@ show_state: true
 | `show_state` | boolean | `true` | Show the entity state. |
 | `options` | list | entity options | Static options for entities that do not expose `options`. |
 | `action` | map | auto for select/input_select | Custom service call with `{{value}}` placeholder. |
+| `allow_any_entity` | boolean | `false` | Allow the entity picker to select any entity when using static options. |
 
 ### Static options for a generic sensor
 
