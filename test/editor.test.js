@@ -65,7 +65,7 @@ describe('DropdownBadgeEditor', () => {
     editor.remove();
   });
 
-  it('filters the entity picker to selectable domains by default', async () => {
+  it('filters the entity picker to selectable domains', async () => {
     const { default: DropdownBadgeEditor } = await import(
       '../src/dropdown-badge-editor.js'
     );
@@ -85,31 +85,23 @@ describe('DropdownBadgeEditor', () => {
     editor.remove();
   });
 
-  it('removes the domain filter when allow_any_entity is enabled', async () => {
+  it('exposes dropdown_on and action selectors', async () => {
     const { default: DropdownBadgeEditor } = await import(
       '../src/dropdown-badge-editor.js'
     );
     const editor = document.createElement('dropdown-badge-editor');
-    editor.setConfig({ entity: 'sensor.fan_speed_preset' });
+    editor.setConfig({ entity: 'select.mode' });
     editor.hass = { states: {} };
     document.body.appendChild(editor);
     await flush();
 
     const form = editor.shadowRoot.querySelector('ha-form');
-    const entitySchema = form.schema.find((s) => s.name === 'entity');
-    expect(entitySchema.selector.entity.domain).toEqual([
-      'select',
-      'input_select',
-    ]);
-
-    editor.setConfig({
-      entity: 'sensor.fan_speed_preset',
-      allow_any_entity: true,
-    });
-    await flush();
-
-    const updatedSchema = form.schema.find((s) => s.name === 'entity');
-    expect(updatedSchema.selector.entity.domain).toBeUndefined();
+    const names = form.schema.map((s) => s.name);
+    expect(names).toContain('dropdown_on');
+    expect(names).toContain('tap_action');
+    expect(names).toContain('hold_action');
+    expect(names).toContain('double_tap_action');
+    expect(names).not.toContain('allow_any_entity');
 
     editor.remove();
   });
