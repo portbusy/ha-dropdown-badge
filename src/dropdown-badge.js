@@ -1,4 +1,4 @@
-import { resolveOptions, buildServiceCall } from './utils.js';
+import { resolveOptions, buildServiceCall, getDomain } from './utils.js';
 import { runAction } from './actions.js';
 
 export const BADGE_STYLE = `
@@ -612,6 +612,37 @@ window.customBadges.push({
   description: 'A badge that displays an entity state and opens a dropdown menu on tap.',
   preview: true,
   documentationURL: 'https://github.com/portbusy/ha-dropdown-badge',
+  getEntitySuggestion(hass, entityId) {
+    const domain = getDomain(entityId);
+    if (domain !== 'select' && domain !== 'input_select') {
+      return null;
+    }
+    const stateObj = hass?.states?.[entityId];
+    if (
+      !stateObj ||
+      !Array.isArray(stateObj.attributes?.options) ||
+      stateObj.attributes.options.length === 0
+    ) {
+      return null;
+    }
+    const baseConfig = {
+      type: 'custom:dropdown-badge',
+      entity: entityId,
+      show_state: true,
+      show_name: false,
+      dropdown_on: 'tap',
+    };
+    const withNameLabel =
+      hass.localize?.('ui.panel.lovelace.editor.badge_picker.with_name') ||
+      'With name';
+    return [
+      { config: baseConfig },
+      {
+        label: withNameLabel,
+        config: { ...baseConfig, show_name: true },
+      },
+    ];
+  },
 });
 
 export default DropdownBadge;

@@ -14,6 +14,7 @@ A native Home Assistant custom badge that shows the state of a `select` or `inpu
 - Standard Home Assistant interactions: `tap_action`, `hold_action`, `double_tap_action`.
 - Choose which interaction opens the dropdown menu (`tap`, `hold`, `double_tap`).
 - Visual editor included (`ha-form` based).
+- Appears in the **Per entità** badge suggestions for `select` and `input_select` entities.
 
 ## Installation
 
