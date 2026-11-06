@@ -1,6 +1,10 @@
+![Dropdown Badge logo](assets/logo.svg)
+
 # Dropdown Badge
 
 A native Home Assistant custom badge that shows the state of a `select` or `input_select` entity and opens a dropdown menu when tapped.
+
+> **Note:** `home-assistant/brands` icons are only required for integrations. HACS Dashboard plugins (like this one) do **not** need brand assets.
 
 ![HACS Badge](https://img.shields.io/badge/HACS-Dashboard-orange.svg)
 

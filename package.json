@@ -3,8 +3,13 @@
   "version": "1.0.0",
   "description": "Home Assistant custom badge with a dropdown menu",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/portbusy/ha-dropdown-badge.git"
+  },
   "scripts": {
     "build": "node build.mjs",
+    "icons": "node scripts/build-icons.mjs",
     "test": "vitest run"
   },
   "keywords": [
@@ -15,6 +20,7 @@
   ],
   "license": "MIT",
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "esbuild": "^0.20.0",
     "happy-dom": "^14.0.0",
     "vitest": "^1.6.0"
