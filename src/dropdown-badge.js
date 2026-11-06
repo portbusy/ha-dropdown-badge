@@ -1,4 +1,5 @@
 import { resolveOptions, buildServiceCall } from './utils.js';
+import { runAction } from './actions.js';
 
 export const BADGE_STYLE = `
   :host {
@@ -280,32 +281,8 @@ class DropdownBadge extends HTMLElement {
     return action && typeof action === 'object' && Object.keys(action).length > 0;
   }
 
-  _dispatchAction(type) {
-    if (!this._config) return;
-    let actionConfig = this._config[`${type}_action`];
-    if (!this._hasAction(type)) {
-      if (type === 'tap' && this._dropdownOn() !== 'tap') {
-        actionConfig = { action: 'more-info' };
-      } else {
-        return;
-      }
-    }
-    const detail = {
-      config: {
-        entity: this._config.entity,
-        tap_action: actionConfig && type === 'tap' ? actionConfig : this._config.tap_action,
-        hold_action: actionConfig && type === 'hold' ? actionConfig : this._config.hold_action,
-        double_tap_action: actionConfig && type === 'double_tap' ? actionConfig : this._config.double_tap_action,
-      },
-      action: type,
-    };
-    this.dispatchEvent(
-      new CustomEvent('hass-action', {
-        bubbles: true,
-        composed: true,
-        detail,
-      })
-    );
+  _runAction(type) {
+    runAction(this, this._hass, this._config, type);
   }
 
   _openMenu() {
@@ -345,7 +322,7 @@ class DropdownBadge extends HTMLElement {
       this._toggleMenu();
       return;
     }
-    this._dispatchAction('tap');
+    this._runAction('tap');
   }
 
   _handleDoubleTapDetection() {
@@ -356,7 +333,7 @@ class DropdownBadge extends HTMLElement {
       if (this._dropdownOn() === 'double_tap') {
         this._openMenu();
       } else if (this._hasAction('double_tap')) {
-        this._dispatchAction('double_tap');
+        this._runAction('double_tap');
       }
       return;
     }
@@ -368,7 +345,7 @@ class DropdownBadge extends HTMLElement {
       if (this._dropdownOn() === 'tap') {
         this._toggleMenu();
       } else {
-        this._dispatchAction('tap');
+        this._runAction('tap');
       }
     }, 250);
   }
@@ -385,7 +362,7 @@ class DropdownBadge extends HTMLElement {
       if (this._dropdownOn() === 'hold') {
         this._openMenu();
       } else if (this._hasAction('hold')) {
-        this._dispatchAction('hold');
+        this._runAction('hold');
       }
     }, 500);
   }

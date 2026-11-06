@@ -161,18 +161,17 @@ describe('DropdownBadge smoke', () => {
     vi.useRealTimers();
   });
 
-  it('dispatches hass-action with action tap when dropdown_on is hold', async () => {
+  it('falls back to hass-more-info on tap when dropdown_on is hold', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     await import('../src/dropdown-badge.js');
     const badge = createBadge({
       entity: 'select.mode',
       dropdown_on: 'hold',
-      tap_action: { action: 'navigate', navigation_path: '/test' },
     });
     await flush();
 
     const listener = vi.fn();
-    badge.addEventListener('hass-action', listener);
+    badge.addEventListener('hass-more-info', listener);
 
     const badgeEl = badge.shadowRoot.querySelector('.badge');
     badgeEl.click();
@@ -180,12 +179,35 @@ describe('DropdownBadge smoke', () => {
 
     expect(listener).toHaveBeenCalledTimes(1);
     const event = listener.mock.calls[0][0];
-    expect(event.detail.action).toBe('tap');
-    expect(event.detail.config.tap_action).toEqual({
-      action: 'navigate',
-      navigation_path: '/test',
-    });
+    expect(event.detail.entityId).toBe('select.mode');
 
+    badge.remove();
+    vi.useRealTimers();
+  });
+
+  it('runs configured tap_action directly when dropdown_on is hold', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    await import('../src/dropdown-badge.js');
+    const pushSpy = vi.spyOn(history, 'pushState').mockImplementation(() => {});
+    const locationListener = vi.fn();
+    window.addEventListener('location-changed', locationListener);
+
+    const badge = createBadge({
+      entity: 'select.mode',
+      dropdown_on: 'hold',
+      tap_action: { action: 'navigate', navigation_path: '/test' },
+    });
+    await flush();
+
+    const badgeEl = badge.shadowRoot.querySelector('.badge');
+    badgeEl.click();
+    await flush();
+
+    expect(pushSpy).toHaveBeenCalledWith(null, '', '/test');
+    expect(locationListener).toHaveBeenCalledTimes(1);
+
+    pushSpy.mockRestore();
+    window.removeEventListener('location-changed', locationListener);
     badge.remove();
     vi.useRealTimers();
   });
