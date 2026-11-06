@@ -74,12 +74,12 @@ describe('DropdownBadge smoke', () => {
     expect(root.querySelector('.badge')).not.toBeNull();
     expect(root.textContent).toContain('eco');
     expect(root.textContent).toContain('Mode');
-    expect(root.querySelector('.menu')).toBeNull();
+    expect(badge._menu).toBeUndefined();
 
     root.querySelector('.badge').click();
     await flush();
 
-    const menu = root.querySelector('.menu');
+    const menu = badge._menu;
     expect(menu).not.toBeNull();
     expect(menu.querySelectorAll('.option').length).toBe(3);
 
@@ -90,7 +90,7 @@ describe('DropdownBadge smoke', () => {
       option: 'comfort',
       entity_id: 'select.mode',
     });
-    expect(root.querySelector('.menu')).toBeNull();
+    expect(badge._menu).toBeUndefined();
 
     badge.remove();
   });
@@ -150,12 +150,12 @@ describe('DropdownBadge smoke', () => {
 
     const badgeEl = badge.shadowRoot.querySelector('.badge');
     badgeEl.dispatchEvent(new PointerEvent('pointerdown', { button: 0, bubbles: true }));
-    expect(badge.shadowRoot.querySelector('.menu')).toBeNull();
+    expect(badge._menu).toBeUndefined();
 
     vi.advanceTimersByTime(500);
     await flush();
 
-    expect(badge.shadowRoot.querySelector('.menu')).not.toBeNull();
+    expect(badge._menu).not.toBeUndefined();
 
     badge.remove();
     vi.useRealTimers();

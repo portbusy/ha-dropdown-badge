@@ -1,4 +1,4 @@
-import { resolveOptions, buildServiceCall } from './utils.js';
+import { resolveOptions, buildServiceCall, getDomain } from './utils.js';
 import { runAction } from './actions.js';
 
 export const BADGE_STYLE = `
@@ -97,6 +97,8 @@ export const BADGE_STYLE = `
   .menu {
     position: fixed;
     z-index: 1000;
+    margin: 0;
+    inset: auto;
     min-width: 160px;
     max-width: 280px;
     max-height: 300px;
@@ -394,7 +396,7 @@ class DropdownBadge extends HTMLElement {
   _closeOnOutside(ev) {
     if (!this._open) return;
     const path = ev.composedPath ? ev.composedPath() : [ev.target];
-    if (!path.includes(this)) {
+    if (!path.includes(this) && !path.includes(this._menu)) {
       this._closeMenu();
     }
   }
@@ -410,8 +412,9 @@ class DropdownBadge extends HTMLElement {
       return;
     }
     if (!this._open) return;
-    const options = Array.from(this.shadowRoot.querySelectorAll('.option'));
-    const idx = options.indexOf(this.shadowRoot.activeElement);
+    const options = this._menu ? Array.from(this._menu.querySelectorAll('.option')) : [];
+    const active = this.shadowRoot.activeElement || document.activeElement;
+    const idx = options.indexOf(active);
     if (ev.key === 'ArrowDown') {
       ev.preventDefault();
       const next = options[(idx + 1) % options.length];
@@ -502,6 +505,7 @@ class DropdownBadge extends HTMLElement {
 
   _renderMenu() {
     if (this._menu) {
+      this._hideMenu(this._menu);
       this._menu.remove();
       this._menu = undefined;
     }
@@ -528,9 +532,65 @@ class DropdownBadge extends HTMLElement {
       menu.appendChild(btn);
     }
 
-    this.shadowRoot.appendChild(menu);
-    this._menu = menu;
+    if (typeof menu.showPopover === 'function') {
+      this.shadowRoot.appendChild(menu);
+      menu.setAttribute('popover', 'manual');
+      this._menu = menu;
+      menu.showPopover();
+    } else {
+      this._applyMenuFallbackStyles(menu);
+      document.body.appendChild(menu);
+      this._menu = menu;
+    }
     this._repositionMenu();
+  }
+
+  _hideMenu(menu) {
+    try {
+      menu.hidePopover();
+    } catch (_) {}
+  }
+
+  _applyMenuFallbackStyles(menu) {
+    const style = document.createElement('style');
+    style.textContent = `
+      .menu {
+        position: fixed;
+        z-index: 1000;
+        margin: 0;
+        inset: auto;
+        min-width: 160px;
+        max-width: 280px;
+        max-height: 300px;
+        overflow-y: auto;
+        background: var(--ha-card-background, var(--card-background-color, white));
+        color: var(--primary-text-color);
+        border: var(--ha-card-border-width, 1px) solid var(--ha-card-border-color, var(--divider-color, #e0e0e0));
+        border-radius: var(--ha-card-border-radius, 12px);
+        box-shadow: var(--ha-card-box-shadow, var(--shadow-elevation-8dp, 0 4px 12px rgba(0,0,0,0.2)));
+        padding: 4px 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .option {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        background: transparent;
+        border: none;
+        color: inherit;
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+        outline: none;
+      }
+      .option:focus-visible,
+      .option:hover {
+        background: var(--secondary-background-color, rgba(127,127,127,0.2));
+      }
+    `;
+    menu.insertBefore(style, menu.firstChild);
   }
 
   _repositionMenu() {
@@ -552,6 +612,37 @@ window.customBadges.push({
   description: 'A badge that displays an entity state and opens a dropdown menu on tap.',
   preview: true,
   documentationURL: 'https://github.com/portbusy/ha-dropdown-badge',
+  getEntitySuggestion(hass, entityId) {
+    const domain = getDomain(entityId);
+    if (domain !== 'select' && domain !== 'input_select') {
+      return null;
+    }
+    const stateObj = hass?.states?.[entityId];
+    if (
+      !stateObj ||
+      !Array.isArray(stateObj.attributes?.options) ||
+      stateObj.attributes.options.length === 0
+    ) {
+      return null;
+    }
+    const baseConfig = {
+      type: 'custom:dropdown-badge',
+      entity: entityId,
+      show_state: true,
+      show_name: false,
+      dropdown_on: 'tap',
+    };
+    const withNameLabel =
+      hass.localize?.('ui.panel.lovelace.editor.badge_picker.with_name') ||
+      'With name';
+    return [
+      { config: baseConfig },
+      {
+        label: withNameLabel,
+        config: { ...baseConfig, show_name: true },
+      },
+    ];
+  },
 });
 
 export default DropdownBadge;
